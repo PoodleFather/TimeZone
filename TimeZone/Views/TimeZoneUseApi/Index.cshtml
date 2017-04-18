@@ -1,0 +1,91 @@
+﻿@using System.Web.Optimization
+@{
+    Layout = null;
+    ViewBag.Title = "Index";
+}
+
+<style>
+    .TimeZone {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 300px;
+        height: 200px;
+        overflow: hidden;
+        background-color: #FC0;
+        margin-top: -100px;
+        margin-left: -150px;
+    }
+</style>
+@Scripts.Render("~/bundles/bootstrap")
+@Scripts.Render("~/bundles/jquery")
+@Scripts.Render("~/bundles/angular")
+<script type="text/javascript">
+    var timeZoneapp = angular.module('timeZoneapp', []);
+    timeZoneapp.filter('utc', ['$filter', function ($filter) {
+        return function (curruntTime, timeZone, greetingList) {
+            var greeting = _.findWhere(greetingList, { timezone: timeZone });
+            return greeting.first + $filter('date')(curruntTime, 'HH') + greeting.hh + $filter('date')(curruntTime, 'mm') + greeting.mm + greeting.last;
+        };
+    }]).controller('timeZoneController', ['$scope', '$interval', '$log', "$http", function ($scope, $interval, $log, $http) {
+        /*inner function*/
+        var getTimeNow = function ()
+        {
+            $http({
+                    method: 'GET',
+                    url: '/Api/GetTimeZone/GetTimeZoneNow',
+                    params: {
+                        timeZone: $scope.timeZone
+                    }
+                }).success(function (data, status, headers, config) {
+                    $log.info($scope.curruntTime)
+                    $scope.curruntTime = data;
+                }).error(function (data, status, headers, config) {
+            });
+        }
+        /* scope variable */
+        $scope.timeZone = "kr";
+        $scope.greeting = "";
+        $scope.curruntTime = "";
+
+        $scope.languageList = [
+            { Text: '한국어', Id: 'kr' },
+            { Text: '일본어', Id: 'jp' },
+            { Text: '영어', Id: 'us' }
+        ]
+
+        $scope.timeZoneList = [
+            { Text: '한국시간', Id: 'kr' },
+            { Text: '일본시간', Id: 'jp' },
+            { Text: '뉴욕시간', Id: 'us' }
+        ]
+        $scope.greetingList = [
+           { timezone: 'kr', first: '안녕하세요. 지금시간은', last: '입니다.' , hh : '시 ', mm:'분 ' },
+           { timezone: 'jp', first: 'こんにちは。今の時間は、', last: 'です。', hh: '時 ', mm: '分 '},
+           { timezone: 'us', first: 'Hello Now is the time ', last: '.', hh: ': ', mm: '' }
+        ]
+
+        /*scope function*/
+        $scope.$watch('timeZone', function (newValues, oldValues) {
+            $scope.language = newValues;
+            getTimeNow();
+        });
+
+        $interval(getTimeNow, 1000);
+
+    }]);
+</script>
+
+<div ng-app="timeZoneapp">
+    <div ng-controller="timeZoneController">
+        <select ng-model="timeZone" class="form-control">
+            <option ng-repeat="option in languageList" value="{{option.Id}}">{{option.Text}}</option>
+        </select>
+        <select ng-model="timeZone" class="form-control">
+            <option ng-repeat="option in timeZoneList" value="{{option.Id}}">{{option.Text}}</option>
+        </select>
+        <div class="TimeZone">
+            {{curruntTime | utc : timeZone : greetingList}}
+        </div>
+    </div>
+</div>
